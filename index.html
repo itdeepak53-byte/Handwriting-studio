@@ -2613,19 +2613,19 @@
                                 <span class="text-[11px] font-bold text-slate-300 flex items-center gap-1">
                                     <i class="fa-solid fa-pen text-indigo-400 text-[10px]"></i>पेन इंक का रंग (Pen Ink &amp; Text Color):
                                 </span>
-                                <span class="text-[9px] text-slate-400">क्लिक कर रंग बदलें</span>
+                                <span id="activeInkColorLabel" class="text-[10px] font-bold text-sky-300 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-700">Original Blue (#0000ff)</span>
                             </div>
-                            <div class="flex flex-wrap items-center justify-between gap-1.5 p-2 bg-slate-900 rounded-xl border border-slate-800">
+                            <div class="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-900 rounded-xl border border-slate-800">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#0000ff')" data-color="#0000ff" title="Original Blue (ओरिजिनल नीला - डिफ़ॉल्ट)" style="background-color: #0000ff;" class="ink-swatch-btn w-6 h-6 rounded-full color-swatch-btn ring-2 ring-white/40 ring-4 ring-indigo-400 scale-110 shadow cursor-pointer transition-all"></button>
-                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#000000')" data-color="#000000" title="Original Black (ओरिजिनल काला)" style="background-color: #000000;" class="ink-swatch-btn w-6 h-6 rounded-full color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
-                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#ff0000')" data-color="#ff0000" title="Original Red (ओरिजिनल लाल)" style="background-color: #ff0000;" class="ink-swatch-btn w-6 h-6 rounded-full color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
-                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#1e3a8a')" data-color="#1e3a8a" title="Royal Blue (रॉयल ब्लू)" class="ink-swatch-btn w-6 h-6 rounded-full bg-blue-900 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
-                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#0f172a')" data-color="#0f172a" title="Black Gel (काला जेल पेन)" class="ink-swatch-btn w-6 h-6 rounded-full bg-slate-950 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
-                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#991b1b')" data-color="#991b1b" title="Crimson Red (लाल पेन)" class="ink-swatch-btn w-6 h-6 rounded-full bg-red-800 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
-                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#065f46')" data-color="#065f46" title="Emerald Green (हरा पेन)" class="ink-swatch-btn w-6 h-6 rounded-full bg-emerald-800 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
-                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#581c87')" data-color="#581c87" title="Deep Violet (बैंगनी)" class="ink-swatch-btn w-6 h-6 rounded-full bg-purple-900 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
-                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#78350f')" data-color="#78350f" title="Sepia Brown (भूरा)" class="ink-swatch-btn w-6 h-6 rounded-full bg-amber-900 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#0000ff')" data-color="#0000ff" data-name="Original Blue" title="Original Blue (ओरिजिनल नीला - डिफ़ॉल्ट)" style="background-color: #0000ff !important;" class="ink-swatch-btn w-6 h-6 rounded-full bg-[#0000ff] color-swatch-btn ring-4 ring-indigo-400 scale-110 shadow cursor-pointer transition-all"></button>
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#000000')" data-color="#000000" data-name="Original Black" title="Original Black (ओरिजिनल काला)" style="background-color: #000000 !important;" class="ink-swatch-btn w-6 h-6 rounded-full bg-[#000000] color-swatch-btn ring-2 ring-white/50 shadow cursor-pointer transition-all"></button>
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#ff0000')" data-color="#ff0000" data-name="Original Red" title="Original Red (ओरिजिनल लाल)" style="background-color: #ff0000 !important;" class="ink-swatch-btn w-6 h-6 rounded-full bg-[#ff0000] color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#1e3a8a')" data-color="#1e3a8a" data-name="Royal Blue" title="Royal Blue (रॉयल ब्लू)" style="background-color: #1e3a8a !important;" class="ink-swatch-btn w-6 h-6 rounded-full bg-blue-900 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#0f172a')" data-color="#0f172a" data-name="Black Gel" title="Black Gel (काला जेल पेन)" style="background-color: #0f172a !important;" class="ink-swatch-btn w-6 h-6 rounded-full bg-slate-950 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#991b1b')" data-color="#991b1b" data-name="Crimson Red" title="Crimson Red (लाल पेन)" style="background-color: #991b1b !important;" class="ink-swatch-btn w-6 h-6 rounded-full bg-red-800 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#065f46')" data-color="#065f46" data-name="Emerald Green" title="Emerald Green (हरा पेन)" style="background-color: #065f46 !important;" class="ink-swatch-btn w-6 h-6 rounded-full bg-emerald-800 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#581c87')" data-color="#581c87" data-name="Deep Violet" title="Deep Violet (बैंगनी)" style="background-color: #581c87 !important;" class="ink-swatch-btn w-6 h-6 rounded-full bg-purple-900 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#78350f')" data-color="#78350f" data-name="Sepia Brown" title="Sepia Brown (भूरा)" style="background-color: #78350f !important;" class="ink-swatch-btn w-6 h-6 rounded-full bg-amber-900 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
                                 </div>
                                 <div class="flex items-center gap-1.5 pl-2 border-l border-slate-800">
                                     <input type="color" id="inputCustomColor" value="#0000ff" oninput="handlePenColorChange(this.value)" onchange="handlePenColorChange(this.value)" title="कस्टम रंग चुनें" class="w-6 h-6 rounded-lg cursor-pointer border-0 bg-transparent">
@@ -14347,14 +14347,20 @@ Output ONLY the translated text without conversational intro, quotes, or markdow
             if (customPicker) customPicker.value = c;
 
             // Highlight active swatch in UI
+            let activeName = c;
             document.querySelectorAll('.ink-swatch-btn').forEach(btn => {
                 const swatchColor = btn.getAttribute('data-color');
                 if (swatchColor && swatchColor.toLowerCase() === c.toLowerCase()) {
+                    btn.classList.remove('ring-2', 'ring-white/40', 'ring-white/50');
                     btn.classList.add('ring-4', 'ring-indigo-400', 'scale-110');
+                    activeName = btn.getAttribute('data-name') ? `${btn.getAttribute('data-name')} (${c})` : c;
                 } else {
                     btn.classList.remove('ring-4', 'ring-indigo-400', 'scale-110');
+                    btn.classList.add('ring-2', 'ring-white/40');
                 }
             });
+            const activeLabel = document.getElementById('activeInkColorLabel');
+            if (activeLabel) activeLabel.innerText = activeName;
 
             if (wysiwygEditor) wysiwygEditor.style.caretColor = c;
             drawCurrentPageText();

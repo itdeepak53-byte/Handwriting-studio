@@ -81,6 +81,7 @@ try {
             $response.ContentType = $mime
             $response.ContentLength64 = $bytes.Length
             $response.Headers.Add("Access-Control-Allow-Origin", "*")
+            $response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate")
             $response.OutputStream.Write($bytes, 0, $bytes.Length)
         } else {
             $response.StatusCode = 404
