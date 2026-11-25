@@ -24,6 +24,18 @@ You can directly open `index.html` in any modern web browser (Google Chrome, Mic
 
 ## ✨ Features & Capabilities
 
+- **⚡ In-App Page Converter (Header Actions)**:
+  - **कन्वर्ट JPEG (Convert to JPEG)** & **कन्वर्ट PDF (Convert to PDF)** buttons directly in the top header.
+  - **पेज चयन विकल्प (Page Selector Options)**:
+    1. **वर्तमान सक्रिय पेज (Current Page)**: केवल वर्तमान पेज को कन्वर्ट करें।
+    2. **सभी पेज एक साथ (All Pages)**: प्रोजेक्ट के सभी पेजों को एक साथ कन्वर्ट करें।
+    3. **विशिष्ट पेज चुनें (Specific Page)**: ड्रॉपडाउन से किसी भी विशिष्ट पेज को चुनें।
+    4. **कस्टम पेज रेंज (Custom Range)**: मनपसंद पेज नंबर या रेंज दर्ज करें (जैसे: `1, 3` या `1-4`).
+  - **In-App Result Studio (इन-ऐप परिणाम व्यूअर)**:
+    - कन्वर्शन का परिणाम तुरंत इसी ऐप के अंदर दिखता है।
+    - **JPEG परिणाम**: सिंगल पेज ज़ूम व्यू, मल्टी-पेज थंबनेल कैरोसेल, सभी पेजों का ग्रिड व्यू, एक-क्लिक डाउनलोड, क्लिपबोर्ड कॉपी व ZIP बंडल।
+    - **PDF परिणाम**: ऐप के अंदर ही लाइव इंटरैक्टिव PDF व्यूअर, नए टैब में खोलना व डायरेक्ट प्रिंट।
+
 - **📝 Input Text Editor & Multi-Page Studio**:
   - Live preview on realistic ruled paper sheets
   - Multi-page pagination, auto-break, and dynamic page management

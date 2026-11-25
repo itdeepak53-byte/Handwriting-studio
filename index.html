@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="hi" class="h-full bg-[#030712]"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,6 +37,9 @@
 
     <!-- Tesseract.js for Local In-Browser OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" crossorigin="anonymous"></script>
+
+    <!-- JSZip for Multi-page Image ZIP Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" crossorigin="anonymous"></script>
 
     <style>
         body {
@@ -642,6 +645,19 @@
                 </button>
                 <button onclick="toggleZenMode()" id="topZenModeBtn" title="ज़ेन फोकस मोड (Distraction-Free Full View)" class="p-1.5 w-7 h-7 rounded-xl bg-slate-900 hover:bg-indigo-600/30 text-indigo-300 flex items-center justify-center transition active:scale-95 border border-slate-800">
                     <i class="fa-solid fa-expand text-xs"></i>
+                </button>
+            </div>
+
+            <!-- In-App Page Converter Quick Buttons in Header -->
+            <div class="flex items-center gap-1.5 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 px-2.5 py-1 rounded-2xl border border-amber-500/30 shadow-inner">
+                <span class="text-[9px] font-extrabold text-amber-400 uppercase tracking-wider hidden lg:inline mr-0.5"><i class="fa-solid fa-arrows-rotate mr-1"></i>कन्वर्ट:</span>
+                <button onclick="openConverterModal('jpeg')" id="headerConvertJpegBtn" title="पेज को JPEG इमेज में बदलें और इन-ऐप देखें (Convert Page to JPEG & View Result)" class="px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-emerald-500/25 transition">
+                    <i class="fa-solid fa-file-image text-emerald-200 text-xs"></i>
+                    <span>कन्वर्ट JPEG</span>
+                </button>
+                <button onclick="openConverterModal('pdf')" id="headerConvertPdfBtn" title="पेज को PDF दस्तावेज़ में बदलें और इन-ऐप देखें (Convert Page to PDF & View Result)" class="px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-rose-500/25 transition">
+                    <i class="fa-solid fa-file-pdf text-rose-200 text-xs"></i>
+                    <span>कन्वर्ट PDF</span>
                 </button>
             </div>
 
@@ -5584,6 +5600,279 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
                     <i class="fa-solid fa-check text-xs"></i>
                     <span>पेज शिफ्ट करें (Confirm Shift)</span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= CONVERSION OPTIONS MODAL ================= -->
+    <div id="converterModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md animate-enter">
+        <div class="glass-panel max-w-lg w-full rounded-3xl p-5 sm:p-6 shadow-2xl border border-amber-500/40 space-y-4 text-left relative max-h-[92vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-3">
+                    <div id="converterModalHeaderIcon" class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                        <i class="fa-solid fa-file-image text-base"></i>
+                    </div>
+                    <div>
+                        <h3 id="converterModalTitle" class="text-base font-extrabold text-white flex items-center gap-2">
+                            पेज कन्वर्शन स्टूडियो <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">In-App Studio</span>
+                        </h3>
+                        <p class="text-xs text-slate-400">पेज को तुरंत कन्वर्ट करें और परिणाम इसी ऐप में देखें</p>
+                    </div>
+                </div>
+                <button onclick="closeConverterModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Format Selector (JPEG vs PDF) -->
+            <div class="space-y-1.5">
+                <label class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-shapes text-amber-400"></i>आउटपुट फॉर्मेट चुनें:
+                </label>
+                <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-2xl border border-slate-800">
+                    <button type="button" onclick="setConverterFormat('jpeg')" id="convFormatBtn_jpeg" class="py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-600/30">
+                        <i class="fa-solid fa-file-image text-sm"></i>
+                        <span>JPEG इमेज (.jpg)</span>
+                    </button>
+                    <button type="button" onclick="setConverterFormat('pdf')" id="convFormatBtn_pdf" class="py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition text-slate-300 hover:text-white hover:bg-slate-900">
+                        <i class="fa-solid fa-file-pdf text-sm text-rose-400"></i>
+                        <span>PDF दस्तावेज़ (.pdf)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Page Selection Option (किसी page को convert करना है उसका option) -->
+            <div class="space-y-2.5 bg-slate-950/70 p-3.5 rounded-2xl border border-slate-800">
+                <label class="text-xs font-bold text-slate-200 flex items-center justify-between">
+                    <span class="flex items-center gap-1.5">
+                        <i class="fa-solid fa-copy text-indigo-400"></i>कन्वर्ट करने के लिए पेज चुनें (Select Page):
+                    </span>
+                    <span id="convTotalPagesBadge" class="text-[10px] text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">कुल 1 पेज</span>
+                </label>
+
+                <div class="space-y-2 text-xs">
+                    <!-- Option 1: Current Page -->
+                    <label class="flex items-center gap-2.5 p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 cursor-pointer transition">
+                        <input type="radio" name="convPageScope" value="current" checked onchange="onConvScopeChange()" class="text-amber-500 focus:ring-0">
+                        <div class="flex-1 flex items-center justify-between">
+                            <span class="font-bold text-slate-200">वर्तमान सक्रिय पेज (Current Page)</span>
+                            <span id="convCurrentPageNum" class="text-[11px] font-mono text-amber-400 font-bold bg-slate-950 px-2 py-0.5 rounded border border-slate-800">पेज 1</span>
+                        </div>
+                    </label>
+
+                    <!-- Option 2: All Pages -->
+                    <label class="flex items-center gap-2.5 p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 cursor-pointer transition">
+                        <input type="radio" name="convPageScope" value="all" onchange="onConvScopeChange()" class="text-amber-500 focus:ring-0">
+                        <div class="flex-1 flex items-center justify-between">
+                            <span class="font-bold text-slate-200">सभी पेज एक साथ (All Pages)</span>
+                            <span id="convAllPagesSummary" class="text-[11px] font-mono text-slate-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">पेज 1 से 1</span>
+                        </div>
+                    </label>
+
+                    <!-- Option 3: Specific Single Page -->
+                    <label class="flex items-start gap-2.5 p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 cursor-pointer transition">
+                        <input type="radio" name="convPageScope" value="specific" onchange="onConvScopeChange()" class="mt-1 text-amber-500 focus:ring-0">
+                        <div class="flex-1 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-slate-200">कोई विशिष्ट पेज चुनें (Choose Specific Page)</span>
+                                <span class="text-[10px] text-slate-400">ड्रॉपडाउन से चुनें</span>
+                            </div>
+                            <select id="convSpecificPageSelect" onchange="onConvSpecificPageSelectChange()" class="w-full bg-slate-950 border border-slate-700 rounded-xl text-xs px-2.5 py-1.5 text-white font-bold outline-none cursor-pointer focus:border-amber-400">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </label>
+
+                    <!-- Option 4: Custom Range -->
+                    <label class="flex items-start gap-2.5 p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 cursor-pointer transition">
+                        <input type="radio" name="convPageScope" value="custom" onchange="onConvScopeChange()" class="mt-1 text-amber-500 focus:ring-0">
+                        <div class="flex-1 space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-slate-200">कस्टम पेज नंबर / रेंज (Custom Range)</span>
+                                <span class="text-[10px] text-slate-400">उदा. 1, 3 या 1-3</span>
+                            </div>
+                            <input type="text" id="convCustomRangeInput" placeholder="उदा. 1, 3 या 1-3" oninput="onConvCustomRangeInput()" class="w-full bg-slate-950 border border-slate-700 rounded-xl text-xs px-2.5 py-1.5 text-amber-300 font-mono outline-none focus:border-amber-400">
+                            <span id="convCustomRangePreview" class="block text-[10px] text-slate-400 italic">चुने गए पेज: पेज 1</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Resolution & Quality Options -->
+            <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-slate-300 flex items-center gap-1">
+                        <i class="fa-solid fa-expand text-sky-400"></i>रिज़ॉल्यूशन क्वालिटी:
+                    </label>
+                    <select id="convQualitySelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-1.5 text-slate-200 font-semibold outline-none cursor-pointer focus:border-amber-400">
+                        <option value="2" selected>HD 2x (300 DPI - अनुशंसित)</option>
+                        <option value="1">Standard 1x (तेज़ व कॉम्पैक्ट)</option>
+                        <option value="3">Ultra HD 3x (मैक्सिमम प्रिंट)</option>
+                    </select>
+                </div>
+
+                <div id="convJpegQualityBox" class="space-y-1">
+                    <label class="text-[11px] font-bold text-slate-300 flex items-center justify-between">
+                        <span class="flex items-center gap-1"><i class="fa-solid fa-sliders text-emerald-400"></i>JPEG कंप्रेशन:</span>
+                        <span id="convJpegQualityVal" class="text-amber-400 font-mono font-bold">95%</span>
+                    </label>
+                    <input type="range" id="convJpegQualityRange" min="70" max="100" value="95" oninput="document.getElementById('convJpegQualityVal').innerText = this.value + '%'" class="w-full accent-emerald-500 cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Footer Action Buttons -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                <button type="button" onclick="closeConverterModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition active:scale-95">
+                    रद्द करें
+                </button>
+                <button type="button" onclick="executePageConversion()" id="convExecuteBtn" class="px-5 py-2.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-500/25 transition flex items-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-bolt text-amber-300 text-xs"></i>
+                    <span id="convExecuteBtnText">कन्वर्ट करें और अंदर देखें</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= IN-APP CONVERSION RESULT STUDIO MODAL ================= -->
+    <div id="converterResultModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/90 backdrop-blur-lg animate-enter">
+        <div class="glass-panel w-full max-w-5xl rounded-3xl p-4 sm:p-5 shadow-2xl border border-amber-500/40 flex flex-col max-h-[96vh] text-left relative overflow-hidden">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 shrink-0 gap-3">
+                <div class="flex items-center gap-3">
+                    <div id="resModalIcon" class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                        <i class="fa-solid fa-circle-check text-lg text-emerald-100"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 id="resModalTitle" class="text-base sm:text-lg font-black text-white">
+                                कन्वर्शन परिणाम <span class="royal-gold-text">In-App Preview</span>
+                            </h3>
+                            <span id="resFormatBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">JPEG</span>
+                            <span id="resPagesBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-amber-300 border border-slate-700">1 पेज</span>
+                        </div>
+                        <p id="resModalSubtitle" class="text-xs text-slate-400">पेज सफलतापूर्वक कन्वर्ट हो गया है, नीचे सीधा प्रिव्यू देखें व डाउनलोड करें</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="reopenConverterOptions()" title="कन्वर्शन सेटिंग्स बदलें" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition active:scale-95 border border-slate-700">
+                        <i class="fa-solid fa-rotate-left text-xs text-amber-400"></i>
+                        <span class="hidden sm:inline">नया कन्वर्शन</span>
+                    </button>
+                    <button onclick="closeConverterResultModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="flex-1 min-h-0 py-2.5 flex flex-col gap-2.5 overflow-hidden">
+                
+                <!-- JPEG Multi-page Carousel / Navigation Bar -->
+                <div id="resJpegMultiPageControls" class="hidden shrink-0 flex items-center justify-between gap-2 p-2 bg-slate-950/80 rounded-2xl border border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <button onclick="navigateResultPage(-1)" id="resPrevPageBtn" class="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold transition flex items-center gap-1 active:scale-95 border border-slate-700">
+                            <i class="fa-solid fa-chevron-left text-[10px]"></i><span>पिछला</span>
+                        </button>
+                        <span id="resPageIndicator" class="text-xs font-mono font-bold text-amber-400 px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800">पेज 1 / 1</span>
+                        <button onclick="navigateResultPage(1)" id="resNextPageBtn" class="px-2.5 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold transition flex items-center gap-1 active:scale-95 border border-slate-700">
+                            <span>अगला</span><i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        </button>
+                    </div>
+
+                    <!-- Thumbnails row -->
+                    <div id="resThumbnailsBar" class="flex items-center gap-2 overflow-x-auto py-1 px-2 max-w-[55%] scrollbar-thin">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- View Mode Toggle: Single vs Grid -->
+                    <div class="flex items-center gap-1 bg-slate-900 p-1 rounded-xl border border-slate-800">
+                        <button onclick="setResultJpegViewMode('single')" id="resViewModeSingleBtn" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                            <i class="fa-solid fa-image mr-1"></i>सिंगल
+                        </button>
+                        <button onclick="setResultJpegViewMode('grid')" id="resViewModeGridBtn" class="px-2.5 py-1 rounded-lg text-xs font-bold text-slate-400 hover:text-white">
+                            <i class="fa-solid fa-table-cells mr-1"></i>ग्रिड
+                        </button>
+                    </div>
+                </div>
+
+                <!-- JPEG Single Preview Box -->
+                <div id="resJpegSingleContainer" class="flex-1 min-h-[380px] bg-slate-950/90 rounded-2xl border border-slate-800/90 flex flex-col items-center justify-center p-2 sm:p-3 overflow-auto relative">
+                    <img id="resJpegMainImage" src="" alt="Converted Page" class="max-h-full max-w-full object-contain rounded-xl shadow-2xl transition-transform duration-200 select-none">
+                    <div id="resJpegImageOverlayInfo" class="absolute bottom-3 left-4 bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-xl border border-slate-700 text-[11px] font-mono text-slate-300 flex items-center gap-2">
+                        <span id="resJpegDimsText">1590 x 2250 px</span>
+                        <span class="text-slate-600">•</span>
+                        <span id="resJpegSizeText">JPEG 95%</span>
+                    </div>
+                </div>
+
+                <!-- JPEG Grid Preview Box -->
+                <div id="resJpegGridContainer" class="hidden flex-1 min-h-[380px] bg-slate-950/90 rounded-2xl border border-slate-800/90 p-4 overflow-y-auto">
+                    <div id="resJpegGridItems" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- PDF Embedded Viewer Box -->
+                <div id="resPdfContainer" class="hidden flex-1 min-h-[420px] bg-slate-950/90 rounded-2xl border border-slate-800/90 flex flex-col overflow-hidden relative">
+                    <div class="flex items-center justify-between px-3 py-1.5 bg-slate-900 border-b border-slate-800 text-xs">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-file-pdf text-rose-400"></i>
+                            <span class="font-bold text-slate-200">इंटरैक्टिव PDF प्रिव्यू (In-App PDF Viewer)</span>
+                            <span id="resPdfPageCountText" class="text-[11px] text-amber-400 font-mono">3 पृष्ठ</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="openPdfInNewTab()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-semibold transition active:scale-95 flex items-center gap-1">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>नए टैब में खोलें
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex-1 w-full h-full min-h-[380px] relative bg-slate-900">
+                        <iframe id="resPdfIframe" class="w-full h-full border-0 rounded-b-2xl bg-slate-800" src="about:blank"></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Action Footer -->
+            <div class="border-t border-slate-800 pt-3 shrink-0 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 text-xs text-slate-400">
+                    <span id="resFooterStatusText">परिणाम डाउनलोड व शेयर के लिए तैयार है।</span>
+                </div>
+
+                <div class="flex items-center gap-2 flex-wrap">
+                    <!-- Actions for JPEG -->
+                    <div id="resJpegActions" class="flex items-center gap-2">
+                        <button onclick="copyResultImageToClipboard()" id="resCopyImageBtn" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 active:scale-95 border border-slate-700">
+                            <i class="fa-solid fa-clipboard text-amber-400"></i>
+                            <span>इमेज कॉपी करें</span>
+                        </button>
+                        <button onclick="downloadCurrentResultJpeg()" id="resDownloadSingleJpegBtn" class="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold transition flex items-center gap-1.5 active:scale-95 shadow-md shadow-emerald-500/20">
+                            <i class="fa-solid fa-download text-xs"></i>
+                            <span id="resDownloadSingleJpegBtnText">यह JPEG डाउनलोड करें</span>
+                        </button>
+                        <button onclick="downloadAllResultJpegs()" id="resDownloadAllJpegsBtn" class="hidden px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white text-xs font-bold transition flex items-center gap-1.5 active:scale-95 shadow-md shadow-amber-500/20">
+                            <i class="fa-solid fa-file-zipper text-xs"></i>
+                            <span>सभी JPEG डाउनलोड करें (ZIP)</span>
+                        </button>
+                    </div>
+
+                    <!-- Actions for PDF -->
+                    <div id="resPdfActions" class="hidden flex items-center gap-2">
+                        <button onclick="printResultPdf()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-1.5 active:scale-95 border border-slate-700">
+                            <i class="fa-solid fa-print text-slate-300"></i>
+                            <span>प्रिंट करें</span>
+                        </button>
+                        <button onclick="downloadResultPdf()" class="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white text-xs font-bold transition flex items-center gap-1.5 active:scale-95 shadow-md shadow-rose-500/20">
+                            <i class="fa-solid fa-file-pdf text-xs"></i>
+                            <span>PDF डाउनलोड करें</span>
+                        </button>
+                    </div>
+
+                    <button onclick="closeConverterResultModal()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition active:scale-95">
+                        बंद करें
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -19717,6 +20006,625 @@ Output ONLY the translated text without conversational intro, quotes, or markdow
             }
             updateActiveFeatureBadges();
         };
+    
+        /* ==========================================================================
+           IN-APP CONVERTER STUDIO (JPEG & PDF WITH PAGE SELECTOR & IN-APP PREVIEW)
+           ========================================================================== */
+        const converterState = {
+            format: 'jpeg', // 'jpeg' or 'pdf'
+            scope: 'current', // 'current', 'all', 'specific', 'custom'
+            qualityScale: 2,
+            jpegQuality: 0.95,
+            selectedPages: []
+        };
+
+        const conversionResult = {
+            format: 'jpeg',
+            pages: [], // [{ pageIndex, pageNum, dataUrl, blob, width, height }]
+            activePageIndex: 0,
+            viewMode: 'single', // 'single' or 'grid'
+            pdfBlob: null,
+            pdfUrl: null,
+            pdfPagesCount: 0
+        };
+
+        // Render any page index to an exact high-resolution canvas with full physics/covers
+        function renderPageToCanvas(pageIndex, exportScale = 2) {
+            if (typeof isFrontCoverOnPage === 'function' && isFrontCoverOnPage(pageIndex)) {
+                const c = document.createElement('canvas');
+                c.width = state.paperWidth * exportScale;
+                c.height = state.paperHeight * exportScale;
+                if (typeof drawCoverOnCanvas === 'function') {
+                    drawCoverOnCanvas(c.getContext('2d'), 'front', state.paperWidth, state.paperHeight, exportScale);
+                }
+                return c;
+            } else if (typeof isBackCoverOnPage === 'function' && isBackCoverOnPage(pageIndex)) {
+                const c = document.createElement('canvas');
+                c.width = state.paperWidth * exportScale;
+                c.height = state.paperHeight * exportScale;
+                if (typeof drawCoverOnCanvas === 'function') {
+                    drawCoverOnCanvas(c.getContext('2d'), 'back', state.paperWidth, state.paperHeight, exportScale);
+                }
+                return c;
+            } else {
+                return generateExactMasterCanvas(pageIndex, exportScale);
+            }
+        }
+
+        function openConverterModal(format = 'jpeg') {
+            converterState.format = format;
+            setConverterFormat(format);
+
+            // Refresh Page numbers & options
+            const total = (state.pages && state.pages.length) ? state.pages.length : 1;
+            const cur = (typeof state.currentPage === 'number') ? state.currentPage : 0;
+
+            const curNumEl = document.getElementById('convCurrentPageNum');
+            if (curNumEl) curNumEl.innerText = `पेज ${cur + 1}`;
+
+            const totalBadge = document.getElementById('convTotalPagesBadge');
+            if (totalBadge) totalBadge.innerText = `कुल ${total} पेज`;
+
+            const allSumEl = document.getElementById('convAllPagesSummary');
+            if (allSumEl) allSumEl.innerText = `पेज 1 से ${total}`;
+
+            // Populate specific page dropdown
+            const specSelect = document.getElementById('convSpecificPageSelect');
+            if (specSelect) {
+                specSelect.innerHTML = '';
+                for (let i = 0; i < total; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    const textSnippet = (state.pages[i] || '').trim().replace(/\s+/g, ' ').substring(0, 28);
+                    opt.text = `पेज ${i + 1}${textSnippet ? ` - "${textSnippet}..."` : ''}`;
+                    if (i === cur) opt.selected = true;
+                    specSelect.appendChild(opt);
+                }
+            }
+
+            // Populate custom range placeholder and default
+            const customInput = document.getElementById('convCustomRangeInput');
+            if (customInput && !customInput.value.trim()) {
+                customInput.value = `${cur + 1}`;
+            }
+            onConvCustomRangeInput();
+
+            document.getElementById('converterModal')?.classList.remove('hidden');
+        }
+
+        function closeConverterModal() {
+            document.getElementById('converterModal')?.classList.add('hidden');
+        }
+
+        function setConverterFormat(format) {
+            converterState.format = format;
+            const isJpeg = format === 'jpeg';
+
+            const jpegBtn = document.getElementById('convFormatBtn_jpeg');
+            const pdfBtn = document.getElementById('convFormatBtn_pdf');
+            const headerIcon = document.getElementById('converterModalHeaderIcon');
+            const jpegBox = document.getElementById('convJpegQualityBox');
+            const execBtnText = document.getElementById('convExecuteBtnText');
+
+            if (isJpeg) {
+                jpegBtn?.classList.add('bg-gradient-to-r', 'from-emerald-600', 'to-teal-600', 'text-white', 'shadow-md', 'shadow-emerald-600/30');
+                jpegBtn?.classList.remove('text-slate-300', 'hover:bg-slate-900');
+                pdfBtn?.classList.remove('bg-gradient-to-r', 'from-rose-600', 'to-red-600', 'text-white', 'shadow-md', 'shadow-rose-600/30');
+                pdfBtn?.classList.add('text-slate-300', 'hover:bg-slate-900');
+                if (headerIcon) {
+                    headerIcon.className = "w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-700 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25";
+                    headerIcon.innerHTML = '<i class="fa-solid fa-file-image text-base"></i>';
+                }
+                if (jpegBox) jpegBox.style.display = 'block';
+                if (execBtnText) execBtnText.innerText = "JPEG में बदलें और अंदर देखें";
+            } else {
+                pdfBtn?.classList.add('bg-gradient-to-r', 'from-rose-600', 'to-red-600', 'text-white', 'shadow-md', 'shadow-rose-600/30');
+                pdfBtn?.classList.remove('text-slate-300', 'hover:bg-slate-900');
+                jpegBtn?.classList.remove('bg-gradient-to-r', 'from-emerald-600', 'to-teal-600', 'text-white', 'shadow-md', 'shadow-emerald-600/30');
+                jpegBtn?.classList.add('text-slate-300', 'hover:bg-slate-900');
+                if (headerIcon) {
+                    headerIcon.className = "w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-red-700 text-white flex items-center justify-center shadow-lg shadow-rose-500/25";
+                    headerIcon.innerHTML = '<i class="fa-solid fa-file-pdf text-base"></i>';
+                }
+                if (jpegBox) jpegBox.style.display = 'none';
+                if (execBtnText) execBtnText.innerText = "PDF में बदलें और अंदर देखें";
+            }
+        }
+
+        function onConvScopeChange() {
+            const radios = document.getElementsByName('convPageScope');
+            for (let r of radios) {
+                if (r.checked) {
+                    converterState.scope = r.value;
+                    break;
+                }
+            }
+            onConvCustomRangeInput();
+        }
+
+        function onConvSpecificPageSelectChange() {
+            const radios = document.getElementsByName('convPageScope');
+            for (let r of radios) {
+                if (r.value === 'specific') {
+                    r.checked = true;
+                    converterState.scope = 'specific';
+                    break;
+                }
+            }
+        }
+
+        function onConvCustomRangeInput() {
+            const input = document.getElementById('convCustomRangeInput');
+            const preview = document.getElementById('convCustomRangePreview');
+            if (!input || !preview) return;
+
+            const pages = resolvePagesFromCustomInput(input.value);
+            if (pages.length === 0) {
+                preview.innerText = "कोई वैध पेज नहीं मिला (वर्तमान पेज लिया जाएगा)";
+                preview.className = "block text-[10px] text-rose-400 italic";
+            } else {
+                const label = pages.map(p => `पेज ${p + 1}`).join(', ');
+                preview.innerText = `चुने गए पेज: ${label} (कुल ${pages.length})`;
+                preview.className = "block text-[10px] text-amber-300 font-semibold";
+            }
+        }
+
+        function resolvePagesFromCustomInput(rawStr) {
+            const total = (state.pages && state.pages.length) ? state.pages.length : 1;
+            if (!rawStr || !rawStr.trim()) return [state.currentPage];
+
+            const parts = rawStr.split(/[,;\s]+/);
+            const pageSet = new Set();
+
+            for (let part of parts) {
+                part = part.trim();
+                if (!part) continue;
+                if (part.includes('-')) {
+                    const [s, e] = part.split('-').map(x => parseInt(x));
+                    if (!isNaN(s) && !isNaN(e)) {
+                        const start = Math.max(1, Math.min(s, e));
+                        const end = Math.min(total, Math.max(s, e));
+                        for (let p = start; p <= end; p++) {
+                            pageSet.add(p - 1);
+                        }
+                    }
+                } else {
+                    const num = parseInt(part);
+                    if (!isNaN(num) && num >= 1 && num <= total) {
+                        pageSet.add(num - 1);
+                    }
+                }
+            }
+
+            const res = Array.from(pageSet).sort((a, b) => a - b);
+            return res.length > 0 ? res : [state.currentPage];
+        }
+
+        function getTargetPageIndices() {
+            const total = (state.pages && state.pages.length) ? state.pages.length : 1;
+            const cur = (typeof state.currentPage === 'number') ? state.currentPage : 0;
+
+            const radios = document.getElementsByName('convPageScope');
+            let scope = 'current';
+            for (let r of radios) {
+                if (r.checked) {
+                    scope = r.value;
+                    break;
+                }
+            }
+
+            if (scope === 'all') {
+                const arr = [];
+                for (let i = 0; i < total; i++) arr.push(i);
+                return arr;
+            } else if (scope === 'specific') {
+                const sel = document.getElementById('convSpecificPageSelect');
+                const val = sel ? parseInt(sel.value) : cur;
+                return [isNaN(val) ? cur : val];
+            } else if (scope === 'custom') {
+                const input = document.getElementById('convCustomRangeInput');
+                return resolvePagesFromCustomInput(input ? input.value : '');
+            } else {
+                return [cur];
+            }
+        }
+
+        async function executePageConversion() {
+            const execBtn = document.getElementById('convExecuteBtn');
+            const execBtnText = document.getElementById('convExecuteBtnText');
+            if (execBtn) execBtn.disabled = true;
+            if (execBtnText) execBtnText.innerText = "प्रोसेसिंग व रेंडरिंग...";
+
+            await document.fonts.ready;
+            await new Promise(r => setTimeout(r, 80));
+
+            try {
+                const targetPages = getTargetPageIndices();
+                const scale = parseInt(document.getElementById('convQualitySelect')?.value || '2');
+                const isJpeg = converterState.format === 'jpeg';
+                const quality = isJpeg ? (parseFloat(document.getElementById('convJpegQualityRange')?.value || '95') / 100) : 0.95;
+
+                conversionResult.format = converterState.format;
+                conversionResult.pages = [];
+                conversionResult.activePageIndex = 0;
+
+                // Revoke old PDF Blob URL if any
+                if (conversionResult.pdfUrl) {
+                    URL.revokeObjectURL(conversionResult.pdfUrl);
+                    conversionResult.pdfUrl = null;
+                }
+
+                if (isJpeg) {
+                    // Render JPEG for all target pages
+                    for (let idx of targetPages) {
+                        const canvas = renderPageToCanvas(idx, scale);
+                        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                        conversionResult.pages.push({
+                            pageIndex: idx,
+                            pageNum: idx + 1,
+                            dataUrl: dataUrl,
+                            width: canvas.width,
+                            height: canvas.height
+                        });
+                    }
+                } else {
+                    // Render PDF using jsPDF
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF({
+                        orientation: state.paperWidth > state.paperHeight ? 'landscape' : 'portrait',
+                        unit: 'pt',
+                        format: [state.paperWidth, state.paperHeight]
+                    });
+
+                    for (let i = 0; i < targetPages.length; i++) {
+                        const pageIdx = targetPages[i];
+                        if (i > 0) pdf.addPage([state.paperWidth, state.paperHeight]);
+
+                        const canvas = renderPageToCanvas(pageIdx, scale);
+                        const imgData = canvas.toDataURL('image/jpeg', quality);
+                        pdf.addImage(imgData, 'JPEG', 0, 0, state.paperWidth, state.paperHeight);
+
+                        // Also store preview for result viewer
+                        conversionResult.pages.push({
+                            pageIndex: pageIdx,
+                            pageNum: pageIdx + 1,
+                            dataUrl: imgData,
+                            width: canvas.width,
+                            height: canvas.height
+                        });
+                    }
+
+                    const pdfBlob = pdf.output('blob');
+                    conversionResult.pdfBlob = pdfBlob;
+                    conversionResult.pdfUrl = URL.createObjectURL(pdfBlob);
+                    conversionResult.pdfPagesCount = targetPages.length;
+                }
+
+                closeConverterModal();
+                openConverterResultModal();
+                showToast(`सफलतापूर्वक ${targetPages.length} पेज कन्वर्ट हुए!`, "success");
+
+            } catch (err) {
+                console.error("Conversion error:", err);
+                showToast("कन्वर्शन में त्रुटि हुई: " + err.message, "error");
+            } finally {
+                if (execBtn) execBtn.disabled = false;
+                setConverterFormat(converterState.format);
+            }
+        }
+
+        function openConverterResultModal() {
+            const isJpeg = conversionResult.format === 'jpeg';
+            const pageCount = conversionResult.pages.length;
+
+            // Badges & text
+            const formatBadge = document.getElementById('resFormatBadge');
+            if (formatBadge) {
+                formatBadge.innerText = isJpeg ? "JPEG इमेज" : "PDF दस्तावेज़";
+                formatBadge.className = isJpeg ?
+                    "px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40" :
+                    "px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/40";
+            }
+
+            const pagesBadge = document.getElementById('resPagesBadge');
+            if (pagesBadge) {
+                pagesBadge.innerText = `${pageCount} पेज कनवर्टेड`;
+            }
+
+            const resTitle = document.getElementById('resModalTitle');
+            if (resTitle) {
+                resTitle.innerHTML = `कन्वर्शन परिणाम <span class="royal-gold-text">In-App Preview</span>`;
+            }
+
+            // Container visibility
+            const jpegControls = document.getElementById('resJpegMultiPageControls');
+            const jpegSingle = document.getElementById('resJpegSingleContainer');
+            const jpegGrid = document.getElementById('resJpegGridContainer');
+            const pdfCont = document.getElementById('resPdfContainer');
+            const jpegActions = document.getElementById('resJpegActions');
+            const pdfActions = document.getElementById('resPdfActions');
+            const downloadAllBtn = document.getElementById('resDownloadAllJpegsBtn');
+
+            if (isJpeg) {
+                pdfCont?.classList.add('hidden');
+                pdfActions?.classList.add('hidden');
+                jpegActions?.classList.remove('hidden');
+
+                if (pageCount > 1) {
+                    jpegControls?.classList.remove('hidden');
+                    downloadAllBtn?.classList.remove('hidden');
+                } else {
+                    jpegControls?.classList.add('hidden');
+                    downloadAllBtn?.classList.add('hidden');
+                }
+
+                setResultJpegViewMode('single');
+                renderResultJpegThumbnails();
+                displayResultJpegPage(0);
+            } else {
+                jpegControls?.classList.add('hidden');
+                jpegSingle?.classList.add('hidden');
+                jpegGrid?.classList.add('hidden');
+                jpegActions?.classList.add('hidden');
+                pdfActions?.classList.remove('hidden');
+                pdfCont?.classList.remove('hidden');
+
+                const iframe = document.getElementById('resPdfIframe');
+                if (iframe && conversionResult.pdfUrl) {
+                    iframe.src = conversionResult.pdfUrl;
+                }
+
+                const pdfCountText = document.getElementById('resPdfPageCountText');
+                if (pdfCountText) {
+                    pdfCountText.innerText = `${conversionResult.pdfPagesCount} पृष्ठ • A4 दस्तावेज़`;
+                }
+            }
+
+            document.getElementById('converterResultModal')?.classList.remove('hidden');
+        }
+
+        function closeConverterResultModal() {
+            document.getElementById('converterResultModal')?.classList.add('hidden');
+            const iframe = document.getElementById('resPdfIframe');
+            if (iframe) iframe.src = "about:blank";
+        }
+
+        function reopenConverterOptions() {
+            closeConverterResultModal();
+            openConverterModal(conversionResult.format);
+        }
+
+        function renderResultJpegThumbnails() {
+            const bar = document.getElementById('resThumbnailsBar');
+            if (!bar) return;
+            bar.innerHTML = '';
+
+            conversionResult.pages.forEach((p, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `shrink-0 p-1 rounded-xl border transition flex items-center gap-1.5 ${
+                    idx === conversionResult.activePageIndex ? 'border-amber-400 bg-amber-500/20' : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                }`;
+                btn.onclick = () => selectResultJpegPage(idx);
+                btn.title = `पेज ${p.pageNum} देखें`;
+
+                const img = document.createElement('img');
+                img.src = p.dataUrl;
+                img.className = "w-8 h-10 object-cover rounded";
+
+                const span = document.createElement('span');
+                span.className = "text-[10px] font-bold text-slate-300 pr-1";
+                span.innerText = `P${p.pageNum}`;
+
+                btn.appendChild(img);
+                btn.appendChild(span);
+                bar.appendChild(btn);
+            });
+        }
+
+        function selectResultJpegPage(index) {
+            if (index < 0 || index >= conversionResult.pages.length) return;
+            conversionResult.activePageIndex = index;
+            displayResultJpegPage(index);
+            renderResultJpegThumbnails();
+        }
+
+        function navigateResultPage(dir) {
+            const next = conversionResult.activePageIndex + dir;
+            if (next >= 0 && next < conversionResult.pages.length) {
+                selectResultJpegPage(next);
+            }
+        }
+
+        function displayResultJpegPage(index) {
+            const p = conversionResult.pages[index];
+            if (!p) return;
+
+            const mainImg = document.getElementById('resJpegMainImage');
+            if (mainImg) mainImg.src = p.dataUrl;
+
+            const indicator = document.getElementById('resPageIndicator');
+            if (indicator) {
+                indicator.innerText = `पेज ${p.pageNum} / ${conversionResult.pages.length}`;
+            }
+
+            const dimsText = document.getElementById('resJpegDimsText');
+            if (dimsText) dimsText.innerText = `${p.width} x ${p.height} px`;
+
+            const sizeText = document.getElementById('resJpegSizeText');
+            if (sizeText) sizeText.innerText = `JPEG HD • पेज ${p.pageNum}`;
+
+            const prevBtn = document.getElementById('resPrevPageBtn');
+            const nextBtn = document.getElementById('resNextPageBtn');
+            if (prevBtn) prevBtn.disabled = index <= 0;
+            if (nextBtn) nextBtn.disabled = index >= conversionResult.pages.length - 1;
+
+            const singleDlText = document.getElementById('resDownloadSingleJpegBtnText');
+            if (singleDlText) singleDlText.innerText = `पेज ${p.pageNum} JPEG डाउनलोड करें`;
+        }
+
+        function setResultJpegViewMode(mode) {
+            conversionResult.viewMode = mode;
+            const singleCont = document.getElementById('resJpegSingleContainer');
+            const gridCont = document.getElementById('resJpegGridContainer');
+            const singleBtn = document.getElementById('resViewModeSingleBtn');
+            const gridBtn = document.getElementById('resViewModeGridBtn');
+
+            if (mode === 'grid') {
+                singleCont?.classList.add('hidden');
+                gridCont?.classList.remove('hidden');
+
+                gridBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+                gridBtn?.classList.remove('text-slate-400');
+                singleBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+                singleBtn?.classList.add('text-slate-400');
+
+                renderResultJpegGrid();
+            } else {
+                gridCont?.classList.add('hidden');
+                singleCont?.classList.remove('hidden');
+
+                singleBtn?.classList.add('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+                singleBtn?.classList.remove('text-slate-400');
+                gridBtn?.classList.remove('bg-amber-500/20', 'text-amber-300', 'border', 'border-amber-500/40');
+                gridBtn?.classList.add('text-slate-400');
+
+                displayResultJpegPage(conversionResult.activePageIndex);
+            }
+        }
+
+        function renderResultJpegGrid() {
+            const grid = document.getElementById('resJpegGridItems');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            conversionResult.pages.forEach((p, idx) => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-900/90 rounded-2xl border border-slate-800 p-2.5 flex flex-col gap-2 hover:border-amber-500/50 transition shadow-lg";
+
+                const img = document.createElement('img');
+                img.src = p.dataUrl;
+                img.className = "w-full h-64 object-contain rounded-xl bg-slate-950/80 cursor-pointer";
+                img.onclick = () => {
+                    setResultJpegViewMode('single');
+                    selectResultJpegPage(idx);
+                };
+
+                const bar = document.createElement('div');
+                bar.className = "flex items-center justify-between text-xs";
+                bar.innerHTML = `
+                    <span class="font-bold text-amber-300 font-mono">पेज ${p.pageNum}</span>
+                    <button onclick="downloadSpecificResultJpeg(${idx})" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 transition active:scale-95">
+                        <i class="fa-solid fa-download text-[10px]"></i>डाउनलोड
+                    </button>
+                `;
+
+                card.appendChild(img);
+                card.appendChild(bar);
+                grid.appendChild(card);
+            });
+        }
+
+        function downloadCurrentResultJpeg() {
+            downloadSpecificResultJpeg(conversionResult.activePageIndex);
+        }
+
+        function downloadSpecificResultJpeg(index) {
+            const p = conversionResult.pages[index];
+            if (!p) return;
+
+            const link = document.createElement('a');
+            link.download = `Handwriting_Page_${p.pageNum}_${Date.now()}.jpg`;
+            link.href = p.dataUrl;
+            link.click();
+            showToast(`पेज ${p.pageNum} JPEG डाउनलोड हो गया!`, "success");
+        }
+
+        async function downloadAllResultJpegs() {
+            if (!conversionResult.pages || conversionResult.pages.length === 0) return;
+
+            if (window.JSZip) {
+                showToast("ZIP फ़ाइल तैयार हो रही है...", "info");
+                const zip = new JSZip();
+
+                for (let p of conversionResult.pages) {
+                    const base64Data = p.dataUrl.split(',')[1];
+                    zip.file(`Handwriting_Page_${p.pageNum}.jpg`, base64Data, { base64: true });
+                }
+
+                const content = await zip.generateAsync({ type: "blob" });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = `Handwriting_Studio_All_JPEGs_${Date.now()}.zip`;
+                link.click();
+                showToast("सभी JPEG ZIP में डाउनलोड हो गए!", "success");
+            } else {
+                // Fallback: sequential download
+                showToast("सभी फ़ाइलें डाउनलोड हो रही हैं...", "info");
+                for (let i = 0; i < conversionResult.pages.length; i++) {
+                    downloadSpecificResultJpeg(i);
+                    await new Promise(r => setTimeout(r, 250));
+                }
+            }
+        }
+
+        async function copyResultImageToClipboard() {
+            const p = conversionResult.pages[conversionResult.activePageIndex];
+            if (!p) return;
+
+            try {
+                const res = await fetch(p.dataUrl);
+                const blob = await res.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({ 'image/png': blob, [blob.type]: blob })
+                ]);
+                showToast("इमेज क्लिपबोर्ड पर कॉपी हो गई!", "success");
+            } catch (err) {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const img = new Image();
+                    img.src = p.dataUrl;
+                    await new Promise(r => img.onload = r);
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    canvas.toBlob(async (pngBlob) => {
+                        await navigator.clipboard.write([
+                            new ClipboardItem({ 'image/png': pngBlob })
+                        ]);
+                        showToast("इमेज क्लिपबोर्ड पर कॉपी हो गई!", "success");
+                    }, 'image/png');
+                } catch (e2) {
+                    showToast("क्लिपबोर्ड कॉपी समर्थित नहीं है या अनुमति अस्वीकृत हुई", "warning");
+                }
+            }
+        }
+
+        function downloadResultPdf() {
+            if (!conversionResult.pdfBlob && !conversionResult.pdfUrl) return;
+
+            const link = document.createElement('a');
+            link.download = `Ruled_Handwriting_Studio_${Date.now()}.pdf`;
+            link.href = conversionResult.pdfUrl;
+            link.click();
+            showToast("PDF फ़ाइल डाउनलोड हो गई!", "success");
+        }
+
+        function openPdfInNewTab() {
+            if (conversionResult.pdfUrl) {
+                window.open(conversionResult.pdfUrl, '_blank');
+            }
+        }
+
+        function printResultPdf() {
+            const iframe = document.getElementById('resPdfIframe');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+            } else if (conversionResult.pdfUrl) {
+                window.open(conversionResult.pdfUrl, '_blank');
+            }
+        }
     </script>
 
 </body></html>
