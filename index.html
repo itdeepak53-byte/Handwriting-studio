@@ -6834,9 +6834,24 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
             document.getElementById('imageOrPdfInput')?.addEventListener('change', handleImageOrPdfUpload);
             document.getElementById('cameraInput')?.addEventListener('change', handleImageOrPdfUpload);
 
+            let _cascadeTimer = null;
+            function cascadeOverflowOptimized(cursor, isDeletion) {
+                const curText = state.pages[state.currentPage] || "";
+                const approxLines = curText.split("\n").length;
+                const maxLines = getMaxLinesPerPage();
+                if (!isDeletion && approxLines < (maxLines * 0.85)) {
+                    return;
+                }
+                if (_cascadeTimer) clearTimeout(_cascadeTimer);
+                _cascadeTimer = setTimeout(() => {
+                    _cascadeTimer = null;
+                    cascadePageTextOverflow(state.currentPage, cursor, isDeletion);
+                }, 80);
+            }
+
             const onInputContentChanged = () => {
                 if (!mainTextInput) return;
-                const currentVal = mainTextInput.value.replace(/---\s*\[.*?\]\s*---/gi, '');
+                const currentVal = mainTextInput.value.replace(/---\s*\[.*?\]\s*---/gi, "");
                 const prevVal = state.pages[state.currentPage] || "";
                 const isDeletion = currentVal.length < prevVal.length;
 
@@ -6850,17 +6865,17 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
                     state.pages[state.currentPage] = currentVal;
                     state.rawSourceText = state.pages.join("\n\n");
                     const cursor = mainTextInput.selectionStart;
-                    cascadePageTextOverflow(state.currentPage, cursor, isDeletion);
+                    cascadeOverflowOptimized(cursor, isDeletion);
                 }
                 updateInputCounters();
-                drawCurrentPageText();
+                scheduleTextRender();
                 pushHistoryDebounced();
             };
             window.onInputContentChanged = onInputContentChanged;
 
-            mainTextInput?.addEventListener('input', onInputContentChanged);
-            mainTextInput?.addEventListener('paste', () => setTimeout(onInputContentChanged, 15));
-            mainTextInput?.addEventListener('cut', () => setTimeout(onInputContentChanged, 15));
+            mainTextInput?.addEventListener("input", onInputContentChanged, { passive: true });
+            mainTextInput?.addEventListener("paste", () => setTimeout(onInputContentChanged, 10));
+            mainTextInput?.addEventListener("cut", () => setTimeout(onInputContentChanged, 10));
 
             window.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
@@ -7737,30 +7752,7 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
             document.getElementById('imageOrPdfInput')?.addEventListener('change', handleImageOrPdfUpload);
             document.getElementById('cameraInput')?.addEventListener('change', handleImageOrPdfUpload);
 
-            mainTextInput?.addEventListener('input', () => {
-                if (typeof onInputContentChanged === 'function') {
-                    onInputContentChanged();
-                } else {
-                    if (state.autoSpaceStretch) {
-                        handleDynamicSpaceStretchInput();
-                    }
-                    if (state.isAllPagesEditorMode) {
-                        state.rawSourceText = mainTextInput.value;
-                        paginateAndWrapText(mainTextInput.value, true);
-                    } else {
-                        const currentVal = mainTextInput.value;
-                        const prevVal = state.pages[state.currentPage] || "";
-                        const isDeletion = currentVal.length < prevVal.length;
-                        state.pages[state.currentPage] = currentVal;
-                        state.rawSourceText = state.pages.join("\n\n");
-                        const cursor = mainTextInput.selectionStart;
-                        cascadePageTextOverflow(state.currentPage, cursor, isDeletion);
-                    }
-                    updateInputCounters();
-                    drawCurrentPageText();
-                    pushHistoryDebounced();
-                }
-            });
+            // Duplicate input listener removed for smooth 60 FPS performance
 
             mainTextInput?.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
@@ -11140,8 +11132,13 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
             return activeSentenceMode;
         }
 
+        const textMeasureCache = new Map();
         function measureCustomText(ctx, text, scale) {
             if (!text) return 0;
+            const cacheKey = `${ctx.font}_${text}_${scale}_${state.letterSpacing}_${state.wordSpacing}_${state.hindiFontWidthScale}_${state.englishFontWidthScale}`;
+            const cached = textMeasureCache.get(cacheKey);
+            if (cached !== undefined) return cached;
+
             let baseW = ctx.measureText(text).width;
             if (isEnglishTextOrFont(text, state.fontFamily)) {
                 baseW *= (state.englishFontWidthScale || 1.0);
@@ -11151,7 +11148,11 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
             const extraLetterW = (text.length > 1) ? (text.length - 1) * (state.letterSpacing * scale) : 0;
             const spaceCount = (text.match(/ /g) || []).length;
             const extraWordW = spaceCount * (state.wordSpacing * scale);
-            return baseW + extraLetterW + extraWordW;
+            const totalW = baseW + extraLetterW + extraWordW;
+
+            if (textMeasureCache.size > 2500) textMeasureCache.clear();
+            textMeasureCache.set(cacheKey, totalW);
+            return totalW;
         }
 
         // ================= HINDI FONT HEIGHT & WIDTH HANDLERS =================
@@ -11706,60 +11707,77 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
             ctx.fillStyle = paperBaseFill;
             ctx.fillRect(0, 0, w, h);
 
-            if (state.paperTexture === 'grain') {
+            if (state.paperTexture === "grain" || state.paperTexture === "leather" || state.paperTexture === "old-paper") {
                 ctx.save();
-                ctx.fillStyle = "rgba(0, 0, 0, 0.025)";
-                for (let i = 0; i < w; i += (4 * scale)) {
-                    for (let j = 0; j < h; j += (4 * scale)) {
-                        if ((i + j) % 3 === 0) ctx.fillRect(i, j, 1.5 * scale, 1.5 * scale);
-                    }
-                }
-                ctx.restore();
-            } else if (state.paperTexture === 'leather') {
-                ctx.save();
-                // Base leather texture over whole page very lightly
-                ctx.fillStyle = "rgba(0, 0, 0, 0.015)";
-                for (let i = 0; i < w; i += (6 * scale)) {
-                    for (let j = 0; j < h; j += (6 * scale)) {
-                        if (Math.random() > 0.5) ctx.fillRect(i, j, 3 * scale, 3 * scale);
-                    }
-                }
-                // Dark binding strip on the left
-                const bindingWidth = 35 * scale;
-                const bindingGrad = ctx.createLinearGradient(0, 0, bindingWidth, 0);
-                bindingGrad.addColorStop(0, "rgba(0,0,0,0.4)");
-                bindingGrad.addColorStop(0.2, "rgba(0,0,0,0.2)");
-                bindingGrad.addColorStop(0.8, "rgba(0,0,0,0.05)");
-                bindingGrad.addColorStop(1, "rgba(0,0,0,0)");
-                ctx.fillStyle = bindingGrad;
-                ctx.fillRect(0, 0, bindingWidth, h);
-                // Binding stitch line
-                ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-                ctx.lineWidth = 1 * scale;
-                ctx.setLineDash([4 * scale, 4 * scale]);
-                ctx.beginPath();
-                ctx.moveTo(15 * scale, 0);
-                ctx.lineTo(15 * scale, h);
-                ctx.stroke();
-                ctx.restore();
-            } else if (state.paperTexture === 'old-paper') {
-                ctx.save();
-                ctx.fillStyle = "rgba(139, 69, 19, 0.04)"; // Slight brown tint
-                for (let i = 0; i < w; i += (5 * scale)) {
-                    for (let j = 0; j < h; j += (5 * scale)) {
-                        if (Math.random() > 0.7) {
-                            ctx.beginPath();
-                            ctx.arc(i, j, (Math.random() * 1.5) * scale, 0, Math.PI * 2);
-                            ctx.fill();
+                if (!window._texturePatternCache) window._texturePatternCache = {};
+                const pKey = `${state.paperTexture}_${scale}`;
+                let pattern = window._texturePatternCache[pKey];
+                if (!pattern) {
+                    const offCanvas = document.createElement("canvas");
+                    const offCtx = offCanvas.getContext("2d");
+                    const tileSize = 64 * scale;
+                    offCanvas.width = tileSize;
+                    offCanvas.height = tileSize;
+                    if (state.paperTexture === "grain") {
+                        offCtx.fillStyle = "rgba(0, 0, 0, 0.025)";
+                        for (let i = 0; i < tileSize; i += (4 * scale)) {
+                            for (let j = 0; j < tileSize; j += (4 * scale)) {
+                                if ((i + j) % 3 === 0) offCtx.fillRect(i, j, 1.5 * scale, 1.5 * scale);
+                            }
+                        }
+                    } else if (state.paperTexture === "leather") {
+                        offCtx.fillStyle = "rgba(0, 0, 0, 0.015)";
+                        for (let i = 0; i < tileSize; i += (6 * scale)) {
+                            for (let j = 0; j < tileSize; j += (6 * scale)) {
+                                if (Math.random() > 0.5) offCtx.fillRect(i, j, 3 * scale, 3 * scale);
+                            }
+                        }
+                    } else if (state.paperTexture === "old-paper") {
+                        offCtx.fillStyle = "rgba(139, 69, 19, 0.04)";
+                        for (let i = 0; i < tileSize; i += (5 * scale)) {
+                            for (let j = 0; j < tileSize; j += (5 * scale)) {
+                                if (Math.random() > 0.65) {
+                                    offCtx.beginPath();
+                                    offCtx.arc(i, j, (Math.random() * 1.5) * scale, 0, Math.PI * 2);
+                                    offCtx.fill();
+                                }
+                            }
                         }
                     }
+                    try {
+                        pattern = ctx.createPattern(offCanvas, "repeat");
+                        window._texturePatternCache[pKey] = pattern;
+                    } catch (e) {
+                        pattern = null;
+                    }
                 }
-                // Edge darkening (vignette)
-                const vignette = ctx.createRadialGradient(w/2, h/2, w/3, w/2, h/2, w);
-                vignette.addColorStop(0, "rgba(0,0,0,0)");
-                vignette.addColorStop(1, "rgba(100,50,0,0.1)");
-                ctx.fillStyle = vignette;
-                ctx.fillRect(0, 0, w, h);
+                if (pattern) {
+                    ctx.fillStyle = pattern;
+                    ctx.fillRect(0, 0, w, h);
+                }
+                if (state.paperTexture === "leather") {
+                    const bindingWidth = 35 * scale;
+                    const bindingGrad = ctx.createLinearGradient(0, 0, bindingWidth, 0);
+                    bindingGrad.addColorStop(0, "rgba(0,0,0,0.4)");
+                    bindingGrad.addColorStop(0.2, "rgba(0,0,0,0.2)");
+                    bindingGrad.addColorStop(0.8, "rgba(0,0,0,0.05)");
+                    bindingGrad.addColorStop(1, "rgba(0,0,0,0)");
+                    ctx.fillStyle = bindingGrad;
+                    ctx.fillRect(0, 0, bindingWidth, h);
+                    ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+                    ctx.lineWidth = 1 * scale;
+                    ctx.setLineDash([4 * scale, 4 * scale]);
+                    ctx.beginPath();
+                    ctx.moveTo(15 * scale, 0);
+                    ctx.lineTo(15 * scale, h);
+                    ctx.stroke();
+                } else if (state.paperTexture === "old-paper") {
+                    const vignette = ctx.createRadialGradient(w/2, h/2, w/3, w/2, h/2, w);
+                    vignette.addColorStop(0, "rgba(0,0,0,0)");
+                    vignette.addColorStop(1, "rgba(100,50,0,0.1)");
+                    ctx.fillStyle = vignette;
+                    ctx.fillRect(0, 0, w, h);
+                }
                 ctx.restore();
             }
 
@@ -12170,49 +12188,52 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
 
         function drawPaperBackground() {
             if (!bgCanvas || !bgCtx) return;
-            bgCanvas.width = state.paperWidth * SCALE;
-            bgCanvas.height = state.paperHeight * SCALE;
+            const targetW = state.paperWidth * SCALE;
+            const targetH = state.paperHeight * SCALE;
+            if (bgCanvas.width !== targetW || bgCanvas.height !== targetH) {
+                bgCanvas.width = targetW;
+                bgCanvas.height = targetH;
+            } else {
+                bgCtx.clearRect(0, 0, targetW, targetH);
+            }
 
             const isFrontActive = isFrontCoverOnPage(state.currentPage);
             const isBackActive = isBackCoverOnPage(state.currentPage);
 
-            // Render Front Cover if Cover Studio is enabled AND in explicit preview mode OR applied to this page
-            if (state.coverStudioEnabled && (state.coverViewMode === 'front' || (state.coverViewMode === 'pages' && isFrontActive))) {
-                drawCoverOnCanvas(bgCtx, 'front', state.paperWidth, state.paperHeight, SCALE);
-                if (marginDragZone) marginDragZone.style.display = 'none';
-                if (wysiwygEditor) wysiwygEditor.style.display = 'none';
-                const dateBox = document.getElementById('sheetHeaderInfoBlock');
-                if (dateBox) dateBox.style.display = 'none';
-                const imgLayer = document.getElementById('sheetImagesLayer');
-                if (imgLayer) imgLayer.style.display = 'none';
+            if (state.coverStudioEnabled && (state.coverViewMode === "front" || (state.coverViewMode === "pages" && isFrontActive))) {
+                drawCoverOnCanvas(bgCtx, "front", state.paperWidth, state.paperHeight, SCALE);
+                if (marginDragZone) marginDragZone.style.display = "none";
+                if (wysiwygEditor) wysiwygEditor.style.display = "none";
+                const dateBox = document.getElementById("sheetHeaderInfoBlock");
+                if (dateBox) dateBox.style.display = "none";
+                const imgLayer = document.getElementById("sheetImagesLayer");
+                if (imgLayer) imgLayer.style.display = "none";
                 return;
             }
 
-            // Render Back Cover if Cover Studio is enabled AND in explicit preview mode OR applied to this page
-            if (state.coverStudioEnabled && (state.coverViewMode === 'back' || (state.coverViewMode === 'pages' && isBackActive))) {
-                drawCoverOnCanvas(bgCtx, 'back', state.paperWidth, state.paperHeight, SCALE);
-                if (marginDragZone) marginDragZone.style.display = 'none';
-                if (wysiwygEditor) wysiwygEditor.style.display = 'none';
-                const dateBox = document.getElementById('sheetHeaderInfoBlock');
-                if (dateBox) dateBox.style.display = 'none';
-                const imgLayer = document.getElementById('sheetImagesLayer');
-                if (imgLayer) imgLayer.style.display = 'none';
+            if (state.coverStudioEnabled && (state.coverViewMode === "back" || (state.coverViewMode === "pages" && isBackActive))) {
+                drawCoverOnCanvas(bgCtx, "back", state.paperWidth, state.paperHeight, SCALE);
+                if (marginDragZone) marginDragZone.style.display = "none";
+                if (wysiwygEditor) wysiwygEditor.style.display = "none";
+                const dateBox = document.getElementById("sheetHeaderInfoBlock");
+                if (dateBox) dateBox.style.display = "none";
+                const imgLayer = document.getElementById("sheetImagesLayer");
+                if (imgLayer) imgLayer.style.display = "none";
                 return;
             }
 
-            // By default, render normal ruled notebook page!
             if (marginDragZone) {
-                marginDragZone.style.display = 'flex';
+                marginDragZone.style.display = "flex";
                 marginDragZone.style.left = `${state.leftMarginPos}px`;
             }
-            if (wysiwygEditor) wysiwygEditor.style.display = 'block';
-            const imgLayer = document.getElementById('sheetImagesLayer');
-            if (imgLayer) imgLayer.style.display = 'block';
+            if (wysiwygEditor) wysiwygEditor.style.display = "block";
+            const imgLayer = document.getElementById("sheetImagesLayer");
+            if (imgLayer) imgLayer.style.display = "block";
 
             drawPaperBackgroundOnContext(bgCtx, state.paperWidth, state.paperHeight, SCALE, state.currentPage);
 
             if (wysiwygEditor) {
-                const leftOffset = (['cornell-notes', 'ledger'].includes(state.paperType)) ? (state.leftMarginPos + 125) : (state.leftMarginPos + 3);
+                const leftOffset = (["cornell-notes", "ledger"].includes(state.paperType)) ? (state.leftMarginPos + 125) : (state.leftMarginPos + 3);
                 wysiwygEditor.style.top = `${state.headerSpace}px`;
                 wysiwygEditor.style.left = `${leftOffset}px`;
                 wysiwygEditor.style.right = `${state.rightMarginPadding}px`;
@@ -12220,24 +12241,39 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
                 wysiwygEditor.style.lineHeight = `${state.lineHeight}px`;
                 wysiwygEditor.style.fontSize = `${state.fontSize}px`;
                 wysiwygEditor.style.fontFamily = state.fontFamily;
-                wysiwygEditor.style.fontWeight = (state.fontWeightStyle === 'bold') ? 'bold' : (state.fontBaseWeight || 'normal');
+                wysiwygEditor.style.fontWeight = (state.fontWeightStyle === "bold") ? "bold" : (state.fontBaseWeight || "normal");
                 wysiwygEditor.style.textAlign = state.textAlign;
                 wysiwygEditor.style.caretColor = state.inkColor;
             }
         }
 
+        let _textRenderScheduled = false;
+        function scheduleTextRender() {
+            if (_textRenderScheduled) return;
+            _textRenderScheduled = true;
+            requestAnimationFrame(() => {
+                _textRenderScheduled = false;
+                drawCurrentPageText();
+            });
+        }
+
         function drawCurrentPageText() {
             if (!textCanvas || !textCtx) return;
-            textCanvas.width = state.paperWidth * SCALE;
-            textCanvas.height = state.paperHeight * SCALE;
-            textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+            const targetW = state.paperWidth * SCALE;
+            const targetH = state.paperHeight * SCALE;
+            if (textCanvas.width !== targetW || textCanvas.height !== targetH) {
+                textCanvas.width = targetW;
+                textCanvas.height = targetH;
+            } else {
+                textCtx.clearRect(0, 0, targetW, targetH);
+            }
 
             const isFrontActive = isFrontCoverOnPage(state.currentPage);
             const isBackActive = isBackCoverOnPage(state.currentPage);
 
-            if (state.coverStudioEnabled && (state.coverViewMode === 'front' || state.coverViewMode === 'back' || 
-               (state.coverViewMode === 'pages' && (isFrontActive || isBackActive)))) {
-                return; // Do not draw notebook line text over covers!
+            if (state.coverStudioEnabled && (state.coverViewMode === "front" || state.coverViewMode === "back" ||
+               (state.coverViewMode === "pages" && (isFrontActive || isBackActive)))) {
+                return;
             }
 
             drawPageTextOnContext(textCtx, state.currentPage, state.paperWidth, state.paperHeight, SCALE);
@@ -12247,6 +12283,7 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
             }
         }
 
+        let _lastPagesCountRendered = -1;
         function renderAllTextToCanvas(forceReflow = false) {
             const rawText = state.rawSourceText || state.pages.join("\n\n");
             paginateAndWrapText(rawText, forceReflow);
@@ -12255,15 +12292,21 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
                 mainTextInput.value = state.pages[state.currentPage] || "";
             }
 
-            drawCurrentPageText();
-            drawPaperBackground();
+            scheduleTextRender();
+            if (forceReflow || !bgCanvas || bgCanvas.width === 0) {
+                drawPaperBackground();
+            }
             renderInsertedImagesLayer();
             updatePaginationUI();
             updateInputCounters();
-            updateMiniNavigatorBar();
-            updateSpaceStretchPageSelectOptions();
-            updateAutoShiftPageSelectOptions();
-            updateEditorPaginationUI();
+
+            if (forceReflow || _lastPagesCountRendered !== state.pages.length) {
+                _lastPagesCountRendered = state.pages.length;
+                updateMiniNavigatorBar();
+                updateSpaceStretchPageSelectOptions();
+                updateAutoShiftPageSelectOptions();
+                updateEditorPaginationUI();
+            }
         }
 
         function updateMiniNavigatorBar() {
@@ -14028,17 +14071,22 @@ Output ONLY the translated text without conversational intro, quotes, or markdow
             return /[\u0900-\u097F]/.test(str);
         }
 
+        const HINDI_FONTS_SET = new Set([
+            "kalam", "baloo 2", "mukta", "asar", "anek devanagari", "biryani", "sarala",
+            "sumana", "coiny", "ranga", "karma", "eczar", "kadwa", "sura", "martel",
+            "tiro devanagari", "rajdhani", "cambay", "palanquin", "laila", "arya",
+            "halant", "jaldi", "yatra one", "rozha one", "dekko", "tillana", "sahitya",
+            "kurale", "gotu", "amita", "modak", "rhodium libre", "jaini", "jaini purva",
+            "gajraj one", "inknut antiqua", "khand", "teko", "hind", "akshar", "pragati narrow"
+        ]);
+
         function isHindiFont(fontFamily) {
             if (!fontFamily) return false;
-            const hindiFontNames = [
-                'Kalam', 'Baloo 2', 'Mukta', 'Asar', 'Anek Devanagari', 'Biryani', 'Sarala',
-                'Sumana', 'Coiny', 'Ranga', 'Karma', 'Eczar', 'Kadwa', 'Sura', 'Martel',
-                'Tiro Devanagari', 'Rajdhani', 'Cambay', 'Palanquin', 'Laila', 'Arya',
-                'Halant', 'Jaldi', 'Yatra One', 'Rozha One', 'Dekko', 'Tillana', 'Sahitya',
-                'Kurale', 'Gotu', 'Amita', 'Modak', 'Rhodium Libre', 'Jaini', 'Jaini Purva',
-                'Gajraj One', 'Inknut Antiqua', 'Khand', 'Teko', 'Hind', 'Akshar', 'Pragati Narrow'
-            ];
-            return hindiFontNames.some(name => fontFamily.includes(name));
+            const lower = fontFamily.toLowerCase();
+            for (const name of HINDI_FONTS_SET) {
+                if (lower.includes(name)) return true;
+            }
+            return false;
         }
 
         function isEnglishTextOrFont(text, fontFamily) {
