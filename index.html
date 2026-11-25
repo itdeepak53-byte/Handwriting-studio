@@ -2616,7 +2616,10 @@
                                 <span class="text-[9px] text-slate-400">क्लिक कर रंग बदलें</span>
                             </div>
                             <div class="flex flex-wrap items-center justify-between gap-1.5 p-2 bg-slate-900 rounded-xl border border-slate-800">
-                                <div class="flex items-center gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#0000ff')" data-color="#0000ff" title="Original Blue (ओरिजिनल नीला - डिफ़ॉल्ट)" style="background-color: #0000ff;" class="ink-swatch-btn w-6 h-6 rounded-full color-swatch-btn ring-2 ring-white/40 ring-4 ring-indigo-400 scale-110 shadow cursor-pointer transition-all"></button>
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#000000')" data-color="#000000" title="Original Black (ओरिजिनल काला)" style="background-color: #000000;" class="ink-swatch-btn w-6 h-6 rounded-full color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
+                                    <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#ff0000')" data-color="#ff0000" title="Original Red (ओरिजिनल लाल)" style="background-color: #ff0000;" class="ink-swatch-btn w-6 h-6 rounded-full color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
                                     <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#1e3a8a')" data-color="#1e3a8a" title="Royal Blue (रॉयल ब्लू)" class="ink-swatch-btn w-6 h-6 rounded-full bg-blue-900 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
                                     <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#0f172a')" data-color="#0f172a" title="Black Gel (काला जेल पेन)" class="ink-swatch-btn w-6 h-6 rounded-full bg-slate-950 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
                                     <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#991b1b')" data-color="#991b1b" title="Crimson Red (लाल पेन)" class="ink-swatch-btn w-6 h-6 rounded-full bg-red-800 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
@@ -2625,7 +2628,7 @@
                                     <button onmousedown="event.preventDefault()" onclick="handlePenColorChange('#78350f')" data-color="#78350f" title="Sepia Brown (भूरा)" class="ink-swatch-btn w-6 h-6 rounded-full bg-amber-900 color-swatch-btn ring-2 ring-white/40 shadow cursor-pointer transition-all"></button>
                                 </div>
                                 <div class="flex items-center gap-1.5 pl-2 border-l border-slate-800">
-                                    <input type="color" id="inputCustomColor" value="#1e3a8a" oninput="handlePenColorChange(this.value)" onchange="handlePenColorChange(this.value)" title="कस्टम रंग चुनें" class="w-6 h-6 rounded-lg cursor-pointer border-0 bg-transparent">
+                                    <input type="color" id="inputCustomColor" value="#0000ff" oninput="handlePenColorChange(this.value)" onchange="handlePenColorChange(this.value)" title="कस्टम रंग चुनें" class="w-6 h-6 rounded-lg cursor-pointer border-0 bg-transparent">
                                     <button onclick="setInkColor(document.getElementById('inputCustomColor').value)" title="पूरी शीट की इंक बदलें" class="px-2 py-1 rounded bg-indigo-950 hover:bg-indigo-900 text-indigo-300 text-[10px] font-bold border border-indigo-700/60 active:scale-95 transition">ग्लोबल</button>
                                     <button onmousedown="event.preventDefault()" onclick="applyStyleToSelectedText('color', document.getElementById('inputCustomColor').value)" title="केवल सेलेक्टेड टेक्स्ट का रंग बदलें" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold border border-slate-700 active:scale-95 transition">सेलेक्शन</button>
                                 </div>
@@ -6003,7 +6006,7 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
             autoQnAColoring: true,
             questionTextColor: '#dc2626',
             questionFontWeight: '400',
-            inkColor: '#1e3a8a',
+            inkColor: '#0000ff',
             penType: 'gel',
             penNibSize: 1.0,
             penInkFlow: 1.0,
@@ -10861,7 +10864,7 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
 
             const splitSegments = [];
             segments.forEach(seg => {
-                const segColor = seg.customColor || (state.inkColor || '#1e3a8a');
+                const segColor = seg.customColor || (state.inkColor || '#0000ff');
                 splitSegments.push({
                     ...seg,
                     forcedColor: segColor
@@ -10960,7 +10963,7 @@ Ans." class="w-full text-xs p-2.5 outline-none font-mono text-slate-200 bg-slate
 
             let curDrawX = lineStartX;
             splitSegments.forEach(seg => {
-                let effectiveColor = seg.forcedColor || seg.customColor || (state.inkColor || '#1e3a8a');
+                let effectiveColor = seg.forcedColor || seg.customColor || (state.inkColor || '#0000ff');
                 ctx.font = buildSegmentFont(seg, scale);
                 let segW = measureCustomText(ctx, seg.text, scale);
                 if (extraStretchSpacePerWord > 0) {
@@ -16584,7 +16587,7 @@ Output ONLY the translated text without conversational intro, quotes, or markdow
 
                 // Text
                 ctx.save();
-                ctx.fillStyle = seg.customColor || (state.inkColor || '#1e3a8a');
+                ctx.fillStyle = seg.customColor || (state.inkColor || '#0000ff');
                 ctx.globalAlpha = state.penInkFlow !== undefined ? state.penInkFlow : 1.0;
 
                 // Ink Bleed & Pressure in Column
